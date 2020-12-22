@@ -1272,3 +1272,4 @@ __pycache__/app.cpython-39.pyc
 .venv/Scripts/pythonw.exe
 .venv/Scripts/waitress-serve.exe
 .vscode/settings.json
+database/CreateTables.sql
