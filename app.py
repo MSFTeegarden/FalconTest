@@ -59,8 +59,13 @@ def add_remove_view_item(id, item, action): # this method handles the "view", "a
             cur.execute("select price from items where itemID = %d" % int(item)) #select item price from given itemID
             r = cur.fetchall()
             if(r): # if the item exists
-                cur.execute("insert into carts values (%d, %d, %.2f, GETDATE())" % (int(id),int(item), float(r[0][0]))) # add item to cart
-                return True
+                cur.execute("select price from carts where sessionId = %d and itemId = %d" %(int(id), int(item))) # lookup item to see if is already in cart
+                r = cur.fetchall()
+                if(r):
+                    cur.execute("insert into carts values (%d, %d, %.2f, GETDATE())" % (int(id),int(item), float(r[0][0]))) # add item to cart
+                    return True
+                else:
+                    return False
             else:
                 return False
         
