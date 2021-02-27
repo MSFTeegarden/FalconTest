@@ -30,32 +30,27 @@ def create_destroy_session(id, action): # This method handles the "login" and "l
     store_dt = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S.%f')
     if (action == '/login'):
         r.hmset("session:" + id, { "isActive": 1, "activeDate": store_dt })
+        return True
     
     elif (action == '/logout'):
         r.hmset("session:" + id, { "isActive": 0, "inactiveDate": store_dt })
-    
-    token = r.hgetall("session:" + id)
-    return token # return the session ID
+        return True
+    else:
+        return False
+    return True
 
 def add_remove_view_item(id, item, action): # this method handles the "view", "add", and "remove" API calls
     global r
-    print('starting process', flush=True)
-    print(str(r), flush=True)
 
     if (r.hget("session:" + id, "isActive") == '1'): # check if session exists and is active
-        print('session check complete', flush=True)
 
         if (action == '/view'):
-            print('action: view', flush=True)
             price = r.get("item:" + item)  # check cache for price
             if not price:
-                print('no price found in cache', flush=True)
                 cur.execute("select price from items where itemID = %d" % int(item))  # if price is not in cache, check DB
                 price = cur.fetchall()[0][0]
                 r.set("item:" + item, str(price))  # add price to cache
             
-            print('sucessful price check', flush=True)
-            print(str(price), flush=True)
             return str(price) # return the price
         
         elif (action == '/add'):
@@ -69,13 +64,11 @@ def add_remove_view_item(id, item, action): # this method handles the "view", "a
                 r.delete("cart:" + id + ":item:" + item)
                 return True
             else:
-                print('item not in cart', flush=True)
                 return False
         
         else:
             return False
     else:
-        print('session not found', flush=True)
         return False
     return True
 
@@ -83,33 +76,33 @@ def add_remove_view_item(id, item, action): # this method handles the "view", "a
 class SessionResource(object):
     def on_get(self, req, resp):
         try:
+            start = time.process_time() # get start time for process
             r = create_destroy_session(req.params['id'], req.path)
+            print(time.process_time() - start, flush=True) # print out elapsed time
             # if login/logout request is sucessful:
             resp.status = falcon.HTTP_200
-            resp.body = ('{"status": "Ok", "sucess": "'+ str(r) +'"}')
-            print('sucessful session action', flush=True)
+            resp.body = ('{"status": "Ok"}')
 
         except Exception as e:
             # if login/logout request is unsucessful: 
             resp.status = falcon.HTTP_500
-            resp.body = (str(e))
-            print('failed session action', flush=True)
+            resp.body = ('{"status": "Error"}')
 
 class ItemResource(object):
     def on_get(self, req, resp):
         try:
+            start = time.process_time()
             r = add_remove_view_item(req.params['id'], req.params['item'], req.path)
+            print(time.process_time() - start, flush=True) #print out elapsed time
             # if add/view/remove request is sucessful
             resp.status = falcon.HTTP_200
-            resp.body = ('{"status": "Ok", "sucess": "'+ str(r) +'"}')
-            print('sucessful action', flush=True)
+            resp.body = ('{"status": "Ok"}')
 
         except Exception as e:
             # if add/view/remove request is unsucessful
             r = False
             resp.status = falcon.HTTP_500
-            resp.body = (str(e))
-            print('failed action', flush=True)
+            resp.body = ('{"status": "Error"}')
 
 class ClearAllResource(object):
     def on_get(self, req, resp):
